@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useAppSettings } from '../context/AppSettingsContext';
+import { getBackendUrl } from '../axiosConfig';
 
 const Profile = () => {
   const { user, updateProfile } = useAuth();
+  const backendUrl = getBackendUrl();
   const { t } = useAppSettings();
   const [editing, setEditing] = useState(false);
   const [profileForm, setProfileForm] = useState({
@@ -281,7 +283,7 @@ const Profile = () => {
                   <p className="mt-1 text-gray-900 dark:text-white">
                     {user.resume ? (
                       <a
-                        href={`http://localhost:5000/${user.resume}`}
+                        href={`${backendUrl}/${user.resume}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-blue-600 hover:text-blue-800"

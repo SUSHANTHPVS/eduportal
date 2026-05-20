@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { BuildingOfficeIcon, PlusIcon, EyeIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { getBackendUrl } from '../axiosConfig';
 
 const AdminDrives = () => {
+  const backendUrl = getBackendUrl();
   const [drives, setDrives] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editingDrive, setEditingDrive] = useState(null);
@@ -505,7 +507,7 @@ const AdminDrives = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                           <a
-                            href={`http://localhost:5000/${application.resume}`}
+                            href={`${backendUrl}/${application.resume}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-blue-600 hover:text-blue-800"
