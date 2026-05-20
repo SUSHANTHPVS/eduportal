@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: eduportal-backend
+    env: node
+    branch: main
+    rootDirectory: server
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: MONGO_URI
+      - key: JWT_SECRET
+      - key: PORT
