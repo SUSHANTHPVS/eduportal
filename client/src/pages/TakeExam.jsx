@@ -10,6 +10,8 @@ const TakeExam = () => {
   const [exam, setExam] = useState(null);
   const [answers, setAnswers] = useState({});
   const [selectedLanguages, setSelectedLanguages] = useState({});
+  const [compileOutputs, setCompileOutputs] = useState({});
+  const [compileLoading, setCompileLoading] = useState({});
   const [remainingSeconds, setRemainingSeconds] = useState(0);
   const [result, setResult] = useState(null);
   const [examLoading, setExamLoading] = useState(true);
@@ -81,6 +83,50 @@ const TakeExam = () => {
       alert(error.response?.data?.message || 'Submission failed');
     } finally {
       setSubmitLoading(false);
+    }
+  };
+
+  const executeCode = async (question, runOnly = false) => {
+    const questionId = question._id;
+    const language = selectedLanguages[questionId] || question.supportedLanguages[0];
+    const code = answers[questionId] || '';
+
+    if (!code.trim()) {
+      alert('Please enter your code before compiling or running.');
+      return;
+    }
+
+    setCompileLoading((prev) => ({ ...prev, [questionId]: true }));
+
+    try {
+      const response = await axios.post('http://localhost:5000/api/exams/compile', {
+        language,
+        code,
+        input: question.input || '',
+        runOnly,
+      });
+
+      setCompileOutputs((prev) => ({
+        ...prev,
+        [questionId]: {
+          compileOutput: response.data.compileOutput || '',
+          runtimeOutput: response.data.runtimeOutput || '',
+          success: response.data.success,
+          runOnly,
+        },
+      }));
+    } catch (error) {
+      setCompileOutputs((prev) => ({
+        ...prev,
+        [questionId]: {
+          compileOutput: error.response?.data?.message || 'Compile failed.',
+          runtimeOutput: '',
+          success: false,
+          runOnly,
+        },
+      }));
+    } finally {
+      setCompileLoading((prev) => ({ ...prev, [questionId]: false }));
     }
   };
 
@@ -173,13 +219,59 @@ const TakeExam = () => {
                         ))}
                       </select>
                     </div>
-                    <textarea
-                      value={answers[question._id] || ''}
-                      onChange={(event) => handleAnswerChange(question._id, event.target.value)}
-                      rows={12}
-                      className="w-full rounded border border-gray-300 px-3 py-2 dark:bg-gray-900 dark:border-gray-700 dark:text-white font-mono text-sm"
-                      placeholder={`Write your ${selectedLanguages[question._id] || question.supportedLanguages[0]} code solution here...`}
-                    />
+                    <div className="space-y-4">
+                      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-center">
+                        <div className="flex flex-wrap gap-3">
+                          <button
+                            type="button"
+                            onClick={() => executeCode(question, false)}
+                            disabled={compileLoading[question._id]}
+                            className="rounded bg-amber-500 px-5 py-2 text-white hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            {compileLoading[question._id] ? 'Processing...' : 'Compile & Run'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => executeCode(question, true)}
+                            disabled={compileLoading[question._id]}
+                            className="rounded bg-sky-600 px-5 py-2 text-white hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            {compileLoading[question._id] ? 'Processing...' : 'Run Only'}
+                          </button>
+                        </div>
+                        <p className="text-sm text-gray-600 dark:text-gray-300">
+                          Compile before submitting, or use Run Only for a quick execution pass.
+                        </p>
+                      </div>
+                      <textarea
+                        value={answers[question._id] || ''}
+                        onChange={(event) => handleAnswerChange(question._id, event.target.value)}
+                        rows={12}
+                        className="w-full rounded border border-gray-300 px-3 py-2 dark:bg-gray-900 dark:border-gray-700 dark:text-white font-mono text-sm"
+                        placeholder={`Write your ${selectedLanguages[question._id] || question.supportedLanguages[0]} code solution here...`}
+                      />
+                      {compileOutputs[question._id] && (
+                        <div className="space-y-4 rounded-2xl border p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <div className="text-base font-semibold text-gray-900 dark:text-white">Code Execution Results</div>
+                              <div className="text-sm text-gray-600 dark:text-gray-400">{compileOutputs[question._id].runOnly ? 'Run Only' : 'Compile & Run'} completed</div>
+                            </div>
+                            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${compileOutputs[question._id].success ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200' : 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-200'}`}>
+                              {compileOutputs[question._id].success ? 'Success' : 'Error'}
+                            </span>
+                          </div>
+                          <div className="rounded-xl border border-gray-200 bg-white p-3 text-sm text-gray-700 dark:border-gray-800 dark:bg-gray-950 dark:text-gray-200">
+                            <div className="mb-2 font-semibold">Compile Output</div>
+                            <pre className="whitespace-pre-wrap break-words">{compileOutputs[question._id].compileOutput || 'No compile output.'}</pre>
+                          </div>
+                          <div className="rounded-xl border border-gray-200 bg-white p-3 text-sm text-gray-700 dark:border-gray-800 dark:bg-gray-950 dark:text-gray-200">
+                            <div className="mb-2 font-semibold">Runtime Output</div>
+                            <pre className="whitespace-pre-wrap break-words">{compileOutputs[question._id].runtimeOutput || 'No runtime output.'}</pre>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-3">
