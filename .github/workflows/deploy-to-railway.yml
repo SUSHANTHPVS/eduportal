@@ -1,0 +1,54 @@
+name: Build and (optionally) Deploy to Railway
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Build client
+        working-directory: client
+        run: |
+          npm ci
+          npm run build
+
+      - name: Install server dependencies
+        working-directory: server
+        run: npm ci
+
+      - name: Upload client build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: client-dist
+          path: client/dist
+
+      - name: Install Railway CLI (optional)
+        if: secrets.RAILWAY_API_KEY != ''
+        run: npm install -g @railway/cli
+
+      - name: Deploy to Railway (optional)
+        if: secrets.RAILWAY_API_KEY != ''
+        env:
+          RAILWAY_API_KEY: ${{ secrets.RAILWAY_API_KEY }}
+          RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
+        run: |
+          echo "Logging in to Railway"
+          railway login --apiKey $RAILWAY_API_KEY
+          # If you have linked the project already, `railway up` will deploy.
+          # If not, you can link by project id: `railway link $RAILWAY_PROJECT_ID` (interactive may be required).
+          railway up --yes || (echo "railway up failed; ensure project is linked or use Railway GitHub integration" && exit 0)
+
+      - name: Notes
+        run: |
+          echo "If you do not set RAILWAY_API_KEY and RAILWAY_PROJECT_ID as GitHub secrets, this workflow will still build the client and install server deps but will not push to Railway."

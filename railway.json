@@ -1,0 +1,11 @@
+{
+  "projectId": "<RAILWAY_PROJECT_ID>",
+  "services": [
+    {
+      "name": "eduportal",
+      "path": ".",
+      "build": "cd client && npm ci && npm run build",
+      "start": "cd server && npm start"
+    }
+  ]
+}
